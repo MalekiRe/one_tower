@@ -9,6 +9,7 @@ use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_xpbd_3d::plugins::PhysicsPlugins;
 use bevy_xpbd_3d::prelude::{Collider, RigidBody};
 use egui::CollapsingHeader;
+use leafwing_input_manager::systems::update_action_state;
 
 fn main() {
     App::new()
@@ -30,6 +31,18 @@ fn main() {
         .run();
 }
 
+#[cfg(target_family = "wasm")]
+fn update_canvas_size(mut window: Query<&mut Window, With<PrimaryWindow>>) {
+    (|| {
+        let mut window = window.get_single_mut().ok()?;
+        let browser_window = web_sys::window()?;
+        let width = browser_window.inner_width().ok()?.as_f64()?;
+        let height = browser_window.inner_height().ok()?.as_f64()?;
+        window.resolution.set(width as f32, height as f32);
+        Some(())
+    })();
+}
+
 pub struct StagingPlugin;
 
 impl Plugin for StagingPlugin {
@@ -43,6 +56,8 @@ impl Plugin for StagingPlugin {
         app.insert_resource(DamageLvl(1));
         app.insert_resource(AttackRadiusLvl(1));
         app.insert_resource(GoldConversionRateLvl(1));
+        #[cfg(target_family = "wasm")]
+        app.add_system(Update, update_canvas_size);
     }
 }
 
