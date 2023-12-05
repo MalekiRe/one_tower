@@ -1,53 +1,194 @@
 mod main_game;
 
-use bevy::render::view::RenderLayers;
-use bevy::window::PrimaryWindow;
+use crate::main_game::MainGamePlugins;
 use bevy::{prelude::*, render::camera::ScalingMode};
-use bevy_mod_picking::backend::PointerHits;
-use bevy_mod_picking::backends::raycast::bevy_mod_raycast::prelude::{Ray3d, Raycast};
-use bevy_mod_picking::backends::raycast::{RaycastBackendSettings, RaycastPickable};
-use bevy_mod_picking::prelude::{Move, On, Pickable, Pointer, PointerId, PointerLocation};
+use bevy_egui::{EguiContexts, EguiPlugin};
+use bevy_mod_picking::debug::DebugPickingPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
-use random_number::random;
-use std::ops::{Add, Div, Mul};
-use bevy_egui::{EguiContext, EguiContexts, EguiPlugin};
 use bevy_xpbd_3d::plugins::PhysicsPlugins;
-use bevy_xpbd_3d::prelude::{AngularVelocity, Collider, ExternalImpulse, Friction, Gravity, LinearVelocity, RigidBody};
+use bevy_xpbd_3d::prelude::{Collider, RigidBody};
+use egui::CollapsingHeader;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(DefaultPickingPlugins)
+        .add_plugins(
+            DefaultPickingPlugins
+                .build()
+                .disable::<DebugPickingPlugin>(),
+        )
         .add_plugins(PhysicsPlugins::default())
         .add_plugins(EguiPlugin)
+        .add_plugins(MainGamePlugins)
+        .add_state::<GameState>()
+        .add_event::<GameStateChange>()
         .add_systems(Startup, setup)
-        .add_systems(Update, spawn_enemies)
-        .add_systems(Update, move_enemy_to_mouse)
-        .insert_resource(MousePos(Vec3::new(0.0, 0.0, 0.0)))
-        .add_systems(Update, set_mouse_pos)
-        .add_systems(Update, die)
-        .add_systems(Update, ui_test)
+        .add_systems(Update, change_game_state)
+        .add_plugins(StagingPlugin)
         .run();
 }
 
-fn ui_test(mut contexts: EguiContexts) {
+pub struct StagingPlugin;
+
+impl Plugin for StagingPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            start_game_ui.run_if(state_exists_and_equals(GameState::Staging)),
+        );
+        app.insert_resource(Gold(0.0));
+        app.insert_resource(UpgradeRadiusLvl(1));
+        app.insert_resource(DamageLvl(1));
+        app.insert_resource(AttackRadiusLvl(1));
+        app.insert_resource(GoldConversionRateLvl(1));
+    }
+}
+
+fn start_game_ui(
+    mut gold: ResMut<Gold>,
+    mut upgrade_radius_lvl: ResMut<UpgradeRadiusLvl>,
+    mut attack_radius_lvl: ResMut<AttackRadiusLvl>,
+    mut damage_lvl: ResMut<DamageLvl>,
+    mut gold_conversion_rate_lvl: ResMut<GoldConversionRateLvl>,
+    mut contexts: EguiContexts,
+    mut event_writer: EventWriter<GameStateChange>,
+) {
     let ctx = contexts.ctx_mut();
-    egui::TopBottomPanel::top("top")
-        .resizable(true)
+    egui::SidePanel::left("left")
+        .resizable(false)
         .show(ctx, |ui| {
-            let _ = ui.button("hi");
+            if ui.button("start game").clicked() {
+                event_writer.send(GameStateChange::MainGame)
+            }
+            CollapsingHeader::new("upgrades")
+                .default_open(true)
+                .show(ui, |ui| {
+                    ui.label(format!("gold {}", gold.0));
+                    if calculate_cost_to_upgrade(upgrade_radius_lvl.0) <= gold.0 as u32 {
+                        if ui
+                            .button(format!("upgrade radius level: {}", upgrade_radius_lvl.0))
+                            .clicked()
+                        {
+                            gold.0 -= calculate_cost_to_upgrade(upgrade_radius_lvl.0) as f32;
+                            upgrade_radius_lvl.0 += 1;
+                        }
+                    } else {
+                        ui.label(format!("upgrade radius level: {}", upgrade_radius_lvl.0));
+                        ui.label(format!(
+                            "needed to upgrade: {}",
+                            calculate_cost_to_upgrade(upgrade_radius_lvl.0)
+                        ));
+                    }
+                    if calculate_cost_to_upgrade(attack_radius_lvl.0) <= gold.0 as u32 {
+                        if ui
+                            .button(format!("attack radius level: {}", attack_radius_lvl.0))
+                            .clicked()
+                        {
+                            gold.0 -= calculate_cost_to_upgrade(attack_radius_lvl.0) as f32;
+                            attack_radius_lvl.0 += 1;
+                        }
+                    } else {
+                        ui.label(format!("attack radius level: {}", attack_radius_lvl.0));
+                        ui.label(format!(
+                            "needed to upgrade: {}",
+                            calculate_cost_to_upgrade(attack_radius_lvl.0)
+                        ));
+                    }
+                    if calculate_cost_to_upgrade(damage_lvl.0) <= gold.0 as u32 {
+                        if ui
+                            .button(format!("damage level: {}", damage_lvl.0))
+                            .clicked()
+                        {
+                            gold.0 -= calculate_cost_to_upgrade(damage_lvl.0) as f32;
+                            damage_lvl.0 += 1;
+                        }
+                    } else {
+                        ui.label(format!("damage level: {}", damage_lvl.0));
+                        ui.label(format!(
+                            "needed to upgrade: {}",
+                            calculate_cost_to_upgrade(damage_lvl.0)
+                        ));
+                    }
+                    if calculate_cost_to_upgrade(gold_conversion_rate_lvl.0) <= gold.0 as u32 {
+                        if ui
+                            .button(format!(
+                                "gold conversion rate level: {}",
+                                gold_conversion_rate_lvl.0
+                            ))
+                            .clicked()
+                        {
+                            gold.0 -= calculate_cost_to_upgrade(gold_conversion_rate_lvl.0) as f32;
+                            gold_conversion_rate_lvl.0 += 1;
+                        }
+                    } else {
+                        ui.label(format!(
+                            "gold conversion rate level: {}",
+                            gold_conversion_rate_lvl.0
+                        ));
+                        ui.label(format!(
+                            "needed to upgrade: {}",
+                            calculate_cost_to_upgrade(gold_conversion_rate_lvl.0)
+                        ));
+                    }
+                });
+            CollapsingHeader::new("stats")
+                .default_open(true)
+                .show(ui, |ui| {
+                    let attack_radius = attack_radius_lvl.0 as f32 / 35.0 + 1.0;
+                    let damage = damage_lvl.0 as f32 / 30.0 + 0.2;
+                    let gold_conversion_rate =
+                        1.0 / (5.0 - (gold_conversion_rate_lvl.0 as f32).log(2.5));
+                    let upgrade_radius = (upgrade_radius_lvl.0 as f32).log(1.1) / 25.0 + 0.5;
+                    ui.label(format!("attack radius: {}", attack_radius));
+                    ui.label(format!("bullet damage: {}", damage));
+                    ui.label(format!("gold conversion rate: {}", gold_conversion_rate));
+                    ui.label(format!("upgrade radius: {}", upgrade_radius));
+                });
         });
 }
 
-#[derive(Component)]
-pub struct Tower;
+fn change_game_state(
+    mut event_reader: EventReader<GameStateChange>,
+    mut state: ResMut<NextState<GameState>>,
+) {
+    for event in event_reader.read() {
+        match event {
+            GameStateChange::Staging => state.set(GameState::Staging),
+            GameStateChange::MainGame => state.set(GameState::InGame),
+        }
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
 enum GameState {
     #[default]
-    MainMenu,
     Staging,
     InGame,
+}
+
+#[derive(Event)]
+pub enum GameStateChange {
+    Staging,
+    MainGame,
+}
+
+#[derive(Resource)]
+pub struct Gold(f32);
+
+#[derive(Resource)]
+pub struct UpgradeRadiusLvl(u32);
+
+#[derive(Resource)]
+pub struct AttackRadiusLvl(u32);
+
+#[derive(Resource)]
+pub struct DamageLvl(u32);
+
+#[derive(Resource)]
+pub struct GoldConversionRateLvl(u32);
+
+pub fn calculate_cost_to_upgrade(level: u32) -> u32 {
+    level + (2 * level.ilog2())
 }
 /*
 Game Idea
@@ -75,118 +216,6 @@ The enemies never stop coming.
 
  */
 
-#[derive(Component)]
-pub struct Speed(f32);
-
-#[derive(Component)]
-pub struct Enemy;
-
-#[derive(Bundle)]
-pub struct EnemyBundle {
-    pub enemy: Enemy,
-    pub speed: Speed,
-    pub pbr_bundle: PbrBundle,
-    pub rigid_body: RigidBody,
-    pub angular_velocity: AngularVelocity,
-    pub collider: Collider,
-    pub friction: Friction,
-}
-
-fn die(enemies: Query<&Transform, With<Enemy>>, mouse: ResMut<MousePos>) {
-    let mut mouse = mouse.0;
-    mouse.y = 0.0;
-    for enemy in enemies.iter() {
-        let mut t = enemy.translation;
-        t.y = 0.0;
-        if mouse.distance(t) < 0.03 {
-            println!("dead");
-        }
-    }
-}
-
-fn spawn_enemies(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut time: Res<Time>,
-) {
-    let val: f32 = random!();
-    if val > time.elapsed_seconds().log2() / 500.0{
-        return;
-    }
-    let mut x: f32 = random!();
-    let mut z: f32 = random!();
-    x -= 0.5;
-    z -= 0.5;
-    x *= 2.0;
-    z *= 2.0;
-    let mut thing = Vec2::new(x, z);
-    let (x_neg, y_neg): (f32, f32) = (random!(), random!());
-    let x_neg = if x_neg < 0.5 { -0.01 } else { 0.01 };
-    let y_neg = if y_neg < 0.5 { -0.01 } else { 0.01 };
-    let val: f32 = random!();
-    while thing.distance(Vec2::default()) < 7.0 {
-        if val < 0.5 {
-            thing.x += x_neg;
-        } else {
-            thing.y += y_neg;
-        }
-    }
-    (x, z) = (thing.x, thing.y);
-    let b: f32 = random!();
-    commands.spawn(EnemyBundle {
-        enemy: Enemy,
-        speed: Speed(0.05),
-        pbr_bundle: PbrBundle {
-            mesh: meshes.add(shape::Cube::new(0.1).into()),
-            material: materials.add(Color::rgb(0.3, 0.3, b).into()),
-            transform: Transform::from_xyz(x, 0.1, z),
-            ..default()
-        },
-        rigid_body: RigidBody::Dynamic,
-        angular_velocity: Default::default(),
-        collider: Collider::cuboid(0.1, 0.1, 0.1),
-        friction: Friction::new(0.00),
-    });
-}
-
-#[derive(Resource)]
-struct MousePos(pub Vec3);
-
-fn set_mouse_pos(
-    primary_window: Query<&Window, With<PrimaryWindow>>,
-    pointer_location: Query<&PointerLocation>,
-    picking_cameras: Query<(&Camera, &Projection, &GlobalTransform)>,
-    mut mouse_pos: ResMut<MousePos>,
-) {
-    for pointer_loc in pointer_location.iter() {
-        for (camera, proj, transform) in picking_cameras.iter() {
-            let mut viewport_pos = pointer_loc.location().unwrap().position;
-            //viewport_pos.y -= primary_window.single().height();
-            match proj {
-                Projection::Perspective(_) => {}
-                Projection::Orthographic(a) => {
-                    /*viewport_pos -= a.viewport_origin /*/ primary_window.single().scale_factor() as f32*/;*/
-                }
-            }
-            viewport_pos.y = (viewport_pos.y - primary_window.single().height()) * 3.0;
-            let ray = camera
-                .viewport_to_world(transform, viewport_pos)
-                .map(Ray3d::from)
-                .unwrap();
-            mouse_pos.0 = ray.origin();
-        }
-    }
-}
-
-fn move_enemy_to_mouse(mut commands: Commands, mouse_pos: Res<MousePos>, mut enemies: Query<(Entity, &Transform), With<Enemy>>) {
-    for (enemy, enemy_pos) in enemies.iter_mut() {
-        let mut direction = mouse_pos.0 - enemy_pos.translation;
-        direction.y = 0.0;
-        direction = direction.normalize_or_zero();
-        commands.entity(enemy).insert(ExternalImpulse::new(direction.mul(0.0003)));
-    }
-}
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -205,11 +234,15 @@ fn setup(
     });
 
     // plane
-    commands.spawn((PbrBundle {
-        mesh: meshes.add(shape::Plane::from_size(20.0).into()),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        ..default()
-    }, RigidBody::Static, Collider::cuboid(20.0, 0.01, 20.0)));
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(shape::Plane::from_size(20.0).into()),
+            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+            ..default()
+        },
+        RigidBody::Static,
+        Collider::cuboid(20.0, 0.01, 20.0),
+    ));
     // light
     commands.spawn(PointLightBundle {
         transform: Transform::from_xyz(3.0, 8.0, 5.0),

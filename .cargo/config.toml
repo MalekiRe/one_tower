@@ -1,3 +1,5 @@
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold", "-Zthreads=8" ]#"-Zshare-generics=y"]
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
