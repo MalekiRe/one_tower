@@ -45,8 +45,9 @@ fn spawn_bullet(
     attack_radius_lvl: Res<AttackRadiusLvl>,
     damage_lvl: Res<DamageLvl>,
 ) {
-    let attack_radius = attack_radius_lvl.0 as f32 / 35.0 + 1.0;
+    let attack_radius = attack_radius_lvl.0 as f32 / 15.0 + 1.0;
     let damage = damage_lvl.0 as f32 / 30.0 + 0.2;
+    let mut number_of_shots = 0;
     for (tower_pos, mut tower, tower_level) in towers.iter_mut() {
         tower.0.tick(time.delta());
         if tower.0.finished() {
@@ -73,6 +74,10 @@ fn spawn_bullet(
                     });
                 }
                 if shoot {
+                    number_of_shots += 1;
+                    if number_of_shots >= 6 {
+                        continue;
+                    }
                     commands.spawn(
                         (AudioBundle {
                             source: asset_server.load("shooting.ogg"),

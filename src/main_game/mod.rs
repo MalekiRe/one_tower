@@ -91,7 +91,7 @@ fn on_die(
                 for enemy in enemies.iter() {
                     commands.entity(enemy).despawn();
                 }
-                gold.0 += (score.0 as f32) / (5.0 - (gold_conversion_rate_lvl.0 as f32).log(2.5));
+                gold.0 += (score.0 as f32) / (5.0 - (gold_conversion_rate_lvl.0 as f32).log(2.0));
                 score.0 = 0;
                 placed_towers.0 = 0;
             }
