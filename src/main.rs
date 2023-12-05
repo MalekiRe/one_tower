@@ -11,6 +11,7 @@ use egui::CollapsingHeader;
 
 fn main() {
     App::new()
+        .insert_resource(AssetMetaCheck::Never)
         .add_plugins(DefaultPlugins)
         .add_plugins(
             DefaultPickingPlugins
