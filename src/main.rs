@@ -56,7 +56,7 @@ impl Plugin for StagingPlugin {
         app.insert_resource(UpgradeRadiusLvl(1));
         app.insert_resource(DamageLvl(1));
         app.insert_resource(AttackRadiusLvl(1));
-        app.insert_resource(GoldConversionRateLvl(1));
+        app.insert_resource(GoldConversionRateLvl(2));
         #[cfg(target_family = "wasm")]
         app.add_systems(Update, update_canvas_size);
     }
