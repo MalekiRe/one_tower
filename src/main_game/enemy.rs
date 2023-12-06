@@ -71,6 +71,7 @@ fn if_health_below_zero_then_die(
     mut commands: Commands,
     mut score: ResMut<Score>,
     asset_server: Res<AssetServer>,
+    bevy_audio_sources: Query<Entity, With<Handle<AudioSource>>>,
 ) {
     let mut num_die = 0;
     for (enemy, transform, health) in enemies.iter_mut() {
@@ -79,6 +80,9 @@ fn if_health_below_zero_then_die(
             commands.entity(enemy).despawn();
             if num_die != 0 {
                 continue;
+            }
+            if bevy_audio_sources.iter().collect::<Vec<_>>().len() > 6 {
+               continue;
             }
             num_die += 1;
             commands.spawn((

@@ -44,6 +44,7 @@ fn spawn_bullet(
     asset_server: Res<AssetServer>,
     attack_radius_lvl: Res<AttackRadiusLvl>,
     damage_lvl: Res<DamageLvl>,
+    bevy_audio_sources: Query<Entity, With<Handle<AudioSource>>>,
 ) {
     let attack_radius = attack_radius_lvl.0 as f32 / 15.0 + 1.0;
     let damage = damage_lvl.0 as f32 / 30.0 + 0.2;
@@ -76,6 +77,9 @@ fn spawn_bullet(
                 if shoot {
                     number_of_shots += 1;
                     if number_of_shots >= 6 {
+                        continue;
+                    }
+                    if bevy_audio_sources.iter().collect::<Vec<_>>().len() > 6 {
                         continue;
                     }
                     commands.spawn(
