@@ -3,6 +3,7 @@ mod main_game;
 use crate::main_game::MainGamePlugins;
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy::asset::AssetMetaCheck;
+use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContexts, EguiPlugin};
 use bevy_mod_picking::debug::DebugPickingPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;

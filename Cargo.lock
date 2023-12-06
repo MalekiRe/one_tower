@@ -3183,6 +3183,7 @@ dependencies = [
  "egui",
  "leafwing-input-manager",
  "random-number",
+ "web-sys",
 ]
 
 [[package]]
