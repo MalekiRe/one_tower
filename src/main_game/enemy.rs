@@ -87,7 +87,7 @@ fn if_health_below_zero_then_die(
                     settings: PlaybackSettings {
                         mode: PlaybackMode::Despawn,
                         volume: Volume::new_relative(0.1),
-                        speed: 4.0,
+                        speed: 1.3,
                         paused: false,
                         spatial: false,
                     },
@@ -108,7 +108,7 @@ fn spawn_enemies(
 ) {
     let val: f32 = random!();
     let chance = (time_since_game_start.0 + 2.0) / 1000.0;
-    println!("chance: {}", chance);
+    //println!("chance: {}", chance);
     if val > chance {
         return;
     }
