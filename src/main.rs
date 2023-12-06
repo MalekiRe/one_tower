@@ -154,8 +154,7 @@ fn start_game_ui(
                 .show(ui, |ui| {
                     let attack_radius = attack_radius_lvl.0 as f32 / 15.0 + 1.0;
                     let damage = damage_lvl.0 as f32 / 30.0 + 0.2;
-                    let gold_conversion_rate =
-                        1.0 / ((gold_conversion_rate_lvl.0 as f32).log(1.5) / 5.0);
+                    let gold_conversion_rate = ((gold_conversion_rate_lvl.0 as f32).log(1.5) / 5.0);
                     let upgrade_radius = (upgrade_radius_lvl.0 as f32).log(1.1) / 25.0 + 0.5;
                     ui.label(format!("attack radius: {}", attack_radius));
                     ui.label(format!("bullet damage: {}", damage));
