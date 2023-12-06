@@ -72,17 +72,22 @@ fn if_health_below_zero_then_die(
     mut score: ResMut<Score>,
     asset_server: Res<AssetServer>,
 ) {
+    let mut num_die = 0;
     for (enemy, transform, health) in enemies.iter_mut() {
         if health.0 <= 0.0 {
             score.0 += 1;
             commands.entity(enemy).despawn();
+            if num_die != 0 {
+                continue;
+            }
+            num_die += 1;
             commands.spawn((
                 AudioBundle {
                     source: asset_server.load("enemy_death.ogg"),
                     settings: PlaybackSettings {
                         mode: PlaybackMode::Despawn,
-                        volume: Volume::new_absolute(0.1),
-                        speed: 2.0,
+                        volume: Volume::new_relative(0.1),
+                        speed: 4.0,
                         paused: false,
                         spatial: false,
                     },

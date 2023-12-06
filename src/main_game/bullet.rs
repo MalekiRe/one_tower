@@ -83,7 +83,7 @@ fn spawn_bullet(
                             source: asset_server.load("shooting.ogg"),
                             settings: PlaybackSettings {
                                 mode: PlaybackMode::Despawn,
-                                volume: Volume::new_absolute(0.03),
+                                volume: Volume::new_relative(0.03),
                                 speed: 1.3,
                                 paused: false,
                                 spatial: false,
