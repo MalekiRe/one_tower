@@ -82,7 +82,7 @@ fn if_health_below_zero_then_die(
                 continue;
             }
             if bevy_audio_sources.iter().collect::<Vec<_>>().len() > 6 {
-               continue;
+                continue;
             }
             num_die += 1;
             commands.spawn((
@@ -111,8 +111,12 @@ fn spawn_enemies(
     time_since_game_start: Res<TimeSinceGameStart>,
 ) {
     let val: f32 = random!();
-    let chance = (time_since_game_start.0 + 2.0) / 1000.0;
-    //println!("chance: {}", chance);
+
+    let mut chance = (time_since_game_start.0 + 2.0) / 400.0;
+
+    if time_since_game_start.0 < 100.0 {
+        chance = (time_since_game_start.0 + 2.0) / 1000.0;
+    }
     if val > chance {
         return;
     }

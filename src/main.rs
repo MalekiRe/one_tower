@@ -1,9 +1,9 @@
 mod main_game;
 
 use crate::main_game::MainGamePlugins;
-use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy::asset::AssetMetaCheck;
 use bevy::window::PrimaryWindow;
+use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_egui::{EguiContexts, EguiPlugin};
 use bevy_mod_picking::debug::DebugPickingPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
@@ -155,7 +155,7 @@ fn start_game_ui(
                     let attack_radius = attack_radius_lvl.0 as f32 / 15.0 + 1.0;
                     let damage = damage_lvl.0 as f32 / 30.0 + 0.2;
                     let gold_conversion_rate =
-                        1.0 / (5.0 - (gold_conversion_rate_lvl.0 as f32).log(2.0));
+                        1.0 / ((gold_conversion_rate_lvl.0 as f32).log(1.5) / 5.0);
                     let upgrade_radius = (upgrade_radius_lvl.0 as f32).log(1.1) / 25.0 + 0.5;
                     ui.label(format!("attack radius: {}", attack_radius));
                     ui.label(format!("bullet damage: {}", damage));
